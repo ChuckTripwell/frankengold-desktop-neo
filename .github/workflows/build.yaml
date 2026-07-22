@@ -112,7 +112,7 @@ jobs:
       - name: Sign Kernel Image
         env:
           KERNEL_SECRET: ${{ secrets.KERNEL_SECRET }}
-          IMAGE_NAME: "frankengold-desktop"
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}-desktop
           DEFAULT_TAG: "latest"
           SIGN_SCRIPT_PATH: "./build_files/sign-kernel.sh"
         run: |
