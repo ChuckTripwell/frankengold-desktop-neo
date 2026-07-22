@@ -108,15 +108,21 @@ jobs:
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           oci: true
-
+          
       - name: Sign Kernel Image
         env:
           KERNEL_SECRET: ${{ secrets.KERNEL_SECRET }}
+          IMAGE_NAME: "ghcr.io/chucktripwell/frankengold-desktop"
+          DEFAULT_TAG: "latest"
+          SIGN_SCRIPT_PATH: "./build_files/sign-kernel.sh"
         run: |
-          sudo apt-get install -y xz-utils zstd gzip
-          sudo podman run --entrypoint /bin/bash --name kernel-signer -v $PWD/build_files:/workspace/build_files:ro -e KERNEL_SECRET="${KERNEL_SECRET}" ghcr.io/chucktripwell/frankengold-desktop:latest /workspace/build_files/sign-kernel.sh
-          sudo podman commit kernel-signer ghcr.io/chucktripwell/frankengold-desktop:latest
-          sudo podman rm kernel-signer
+          TARGET_IMAGE="${IMAGE_NAME}:${DEFAULT_TAG}"
+          CONTAINER_ID=$(sudo podman create "${TARGET_IMAGE}")
+          MOUNT_DIR=$(sudo podman mount "${CONTAINER_ID}")
+          KERNEL_SECRET="${KERNEL_SECRET}" "${SIGN_SCRIPT_PATH}" "${MOUNT_DIR}"
+          sudo podman unmount "${CONTAINER_ID}"
+          sudo podman commit "${CONTAINER_ID}" "${TARGET_IMAGE}"
+          sudo podman rm "${CONTAINER_ID}"
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3
