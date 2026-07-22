@@ -117,12 +117,14 @@ jobs:
           SIGN_SCRIPT_PATH: "./build_files/sign-kernel.sh"
         run: |
           TARGET_IMAGE="${IMAGE_NAME}:${DEFAULT_TAG}"
-          CONTAINER_ID=$(sudo podman create "${TARGET_IMAGE}")
-          MOUNT_DIR=$(sudo podman mount "${CONTAINER_ID}")
-          KERNEL_SECRET="${KERNEL_SECRET}" "${SIGN_SCRIPT_PATH}" "${MOUNT_DIR}"
-          sudo podman unmount "${CONTAINER_ID}"
-          sudo podman commit "${CONTAINER_ID}" "${TARGET_IMAGE}"
-          sudo podman rm "${CONTAINER_ID}"
+          CONTAINER_ID=$(podman create "${TARGET_IMAGE}")
+          podman unshare bash -c "
+            MOUNT_DIR=\$(podman mount ${CONTAINER_ID})
+            KERNEL_SECRET=\"${KERNEL_SECRET}\" \"${SIGN_SCRIPT_PATH}\" \"\${MOUNT_DIR}\"
+            podman unmount ${CONTAINER_ID}
+          "
+          podman commit "${CONTAINER_ID}" "${TARGET_IMAGE}"
+          podman rm "${CONTAINER_ID}"
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3
